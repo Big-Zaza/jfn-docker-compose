@@ -1,74 +1,227 @@
+## Prerequisites
+
+Before you begin, make sure you have the following installed:
+
+- **Docker**: Ensure Docker Desktop is installed and running on your machine.
+- **Docker Compose**: Docker Desktop typically includes Docker Compose. Verify it by running:
+  ```bash
+  docker-compose --version
+Cloning the Repository
+Start by cloning the repository to your local machine. Open your terminal and run:
+
+bash
+Copy code
+git clone https://github.com/your-username/petclinic-docker.git
+cd petclinic-docker
+This command downloads the project files to your local directory.
+
+Creating Redis and Sentinel Configuration Files
+To set up Redis with Sentinel for high availability, we need to create configuration files. Follow these steps:
+
+Create a directory for Redis configurations:
+
+bash
+Copy code
+mkdir -p redis/conf
+Create Redis configuration files: Use a text editor to create three files named redis-0.conf, redis-1.conf, and redis-2.conf inside the redis/conf directory:
+
+bash
+Copy code
+touch redis/conf/redis-0.conf redis/conf/redis-1.conf redis/conf/redis-2.conf
+Contents for redis-0.conf:
+
+conf
+Copy code
+protected-mode no
+port 6379
+masterauth a-very-complex-password-here
+requirepass a-very-complex-password-here
+Contents for redis-1.conf:
+
+conf
+Copy code
+protected-mode no
+port 6379
+slaveof redis-0 6379
+masterauth a-very-complex-password-here
+requirepass a-very-complex-password-here
+Contents for redis-2.conf:
+
+conf
+Copy code
+protected-mode no
+port 6379
+slaveof redis-0 6379
+masterauth a-very-complex-password-here
+requirepass a-very-complex-password-here
+Create Sentinel configuration files: Similarly, create three files named sentinel-01.conf, sentinel-02.conf, and sentinel-03.conf inside the redis/conf directory:
+
+bash
+Copy code
+touch redis/conf/sentinel-01.conf redis/conf/sentinel-02.conf redis/conf/sentinel-03.conf
+Contents for each sentinel file:
+
+conf
+Copy code
+port 5000
+sentinel monitor mymaster redis-0 6379 2
+sentinel down-after-milliseconds mymaster 5000
+sentinel failover-timeout mymaster 60000
+sentinel parallel-syncs mymaster 1
+sentinel auth-pass mymaster a-very-complex-password-here
+Understanding Docker Compose
+Docker Compose is a tool for defining and running multi-container Docker applications. In our project, we have multiple services (e.g., the Pet Clinic application, MySQL database, and Redis cluster) that work together seamlessly.
+
+Explaining the docker-compose.yml File
+Here’s the docker-compose.yml file used in this project:
+
+yaml
+Copy code
+version: '3.8'
+
+services:
+  petclinic:
+    build:
+      context: .
+      dockerfile: Dockerfile.multi
+    environment:
+      SERVER_PORT: 8080
+      MYSQL_URL: jdbc:mysql://mysqlserver/petclinic
+    volumes:
+      - /app
+    ports:
+      - "8100:8080"
+
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: ""
+      MYSQL_ALLOW_EMPTY_PASSWORD: true
+      MYSQL_USER: petclinic
+      MYSQL_PASSWORD: petclinic
+      MYSQL_DATABASE: petclinic
+    volumes:
+      - mysql_config:/etc/mysql/conf.d
+
+  redis-0:
+    image: redis:4.0.2
+    command: ["redis-server", "/etc/redis/redis.conf"]
+    volumes:
+      - ./redis/conf/redis-0.conf:/etc/redis/redis.conf
+
+  redis-1:
+    image: redis:4.0.2
+    command: ["redis-server", "/etc/redis/redis.conf"]
+    volumes:
+      - ./redis/conf/redis-1.conf:/etc/redis/redis.conf
+
+  redis-2:
+    image: redis:4.0.2
+    command: ["redis-server", "/etc/redis/redis.conf"]
+    volumes:
+      - ./redis/conf/redis-2.conf:/etc/redis/redis.conf
+
+  sentinel-01:
+    image: redis:4.0.2
+    command: ["redis-sentinel", "/etc/redis/sentinel.conf"]
+    volumes:
+      - ./redis/conf/sentinel-01.conf:/etc/redis/sentinel.conf
+
+  sentinel-02:
+    image: redis:4.0.2
+    command: ["redis-sentinel", "/etc/redis/sentinel.conf"]
+    volumes:
+      - ./redis/conf/sentinel-02.conf:/etc/redis/sentinel.conf
+
+  sentinel-03:
+    image: redis:4.0.2
+    command: ["redis-sentinel", "/etc/redis/sentinel.conf"]
+    volumes:
+      - ./redis/conf/sentinel-03.conf:/etc/redis/sentinel.conf
+
+volumes:
+  mysql_config:
+Explanation of Each Section
+version: Specifies the version of Docker Compose being used (3.8 in this case).
+
+services: Lists all the services (containers) that will be created.
+
+petclinic:
+
+build: Specifies the context and Dockerfile for building the image.
+environment: Sets environment variables for the application (e.g., server port, MySQL connection).
+volumes: Defines volumes for persistent storage.
+ports: Maps port 8080 of the container to port 8100 on the host machine.
+mysql: Configures the MySQL database.
+
+image: Specifies the MySQL image version.
+environment: Sets database credentials and configuration.
+volumes: Mounts MySQL configuration.
+redis-0, redis-1, redis-2: Configures three Redis instances.
+
+image: Uses Redis version 4.0.2.
+command: Starts Redis with the specified configuration file.
+volumes: Maps Redis configuration files.
+sentinel-01, sentinel-02, sentinel-03: Configures Redis Sentinel instances for monitoring.
+
+command: Starts Redis Sentinel with the specified configuration file.
+volumes: Maps Sentinel configuration files.
+volumes: Defines named volumes for persistent storage, specifically for MySQL configuration.
+
+Building and Running the Application
+To start the application, run the following command in the terminal:
+
+bash
+Copy code
+docker-compose up -d
+What Happens When You Run This Command
+Builds Images: If not already built, Docker creates images for all defined services.
+Starts Containers: Each service runs in its own container, allowing them to work together.
+Output of the Command
+You will see logs indicating that each container is starting. This includes images like:
+
+Redis Images: For the Redis instances.
+Pet Clinic Image: The application image.
+MySQL Image: The MySQL database image.
+Port Mapping
+The Pet Clinic application will be accessible on port 8100 of your host machine, which maps to port 8080 in the container.
+
+Accessing the Application
+Once the build is finished, you run the command 
+
+bash 
+docker ps
+
+And you'll see a list of docker images such as; petclinic-docker-petclinic, mysql, redis
+
+To be able to see the application in the Ui, we'll have to create a running instance of the image called a container and expose it in the container port 8080 and in the host port, any one of your choice
+
+bash
+docker run -dp 8100:8080 --name petclinic-app petclinic-docker-petclinic
+
+Pet Clinic UI: http://localhost:8100
+This URL will display the Pet Clinic application interface.
+
+<img width="1434" alt="Screen Shot 2024-10-01 at 08 56 33" src="https://github.com/user-attachments/assets/12bed183-4c3e-46cf-9bb5-5c5cd139666b">
 
 
-## Containerising Pet Clinic app using Docker
+Stopping the Application
+To stop the application and remove the containers, run:
 
-This is a [dockerized version of the original app](https://github.com/spring-projects/spring-petclinic) published by Spring Boot community. 
+bash
+Copy code
+docker-compose down
+This command stops all services and cleans up resources.
 
+Troubleshooting
+If you encounter any issues, consider the following:
 
-## Running PetClinic app locally
+Permission Denied Errors: Ensure that the mvnw file is executable. If you face issues, run:
 
-Petclinic is a [Spring Boot](https://spring.io/guides/gs/spring-boot) application built using Maven. It is an application designed to show how the Spring stack can be used to build simple, but powerful database-oriented applications. The official version of PetClinic demonstrates the use of Spring Boot with Spring MVC and Spring Data JPA.
+bash
+Copy code
+chmod +x mvnw
+Docker Daemon Issues: Make sure Docker Desktop is running and check for error messages in the Docker logs.
 
-## How it works?
-
-Spring boot works with MVC (Model-View-Controller) is a pattern in software design commonly used to implement user interfaces, data and control logic. It emphasizes a separation between business logic and its visualization. This "separation of concerns" provides a better division of labor and improved maintenance.We can work with the persistence or data access layer with [spring-data](https://spring.io/projects/spring-data) in a simple and very fast way, without the need to create so many classes manually. Spring data comes with built-in methods below or by default that allow you to save, delete, update and/or create.
-
-
-## Getting Started
-
-
-```
-git clone https://github.com/dockersamples/spring-petclinic.git
-cd spring-petclinic
-./mvnw package
-java -jar target/*.jar
-```
-
-You can then access petclinic here: http://localhost:8080/
-
-<img width="625" alt="image" src="https://user-images.githubusercontent.com/313480/179161406-54a28200-d52e-411f-bfbe-463cf64b64b3.png">
-
-The applications allows you to perform the following set of functions:
-
-- Add Pets
-- Add Owners
-- Finding Owners
-- Finding Veterinarians
-- Exceptional handling
-
-
-Or you can run it from Maven directly using the Spring Boot Maven plugin. If you do this it will pick up changes that you make in the project immediately (changes to Java source files require a compile as well - most people use an IDE for this):
-
-```
-./mvnw spring-boot:run
-```
-
-> NOTE: Windows users should set `git config core.autocrlf true` to avoid format assertions failing the build (use `--global` to set that flag globally).
-
-> NOTE: If you prefer to use Gradle, you can build the app using `./gradlew build` and look for the jar file in `build/libs`.
-
-## Building a Container
-
-```
- docker build -t petclinic-app . -f Dockerfile
-```
-
-## Multi-Stage Build
-
-```
- docker build -t petclinic-app . -f Dockerfile.multi
-```
-
-## Using Docker Compose
-
-```
- docker-compose up -d
-```
-
-
-
-## References
-
-- [Building PetClinic app using Dockerfile](https://docs.docker.com/language/java/build-images/)
-
+Network Issues: Ensure no other services are using the same ports as defined in the docker-compose.yml.
 
