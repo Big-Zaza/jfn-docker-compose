@@ -1,0 +1,5 @@
+protected-mode no
+port 6379
+masterauth jfn
+requirepass jfn
+
