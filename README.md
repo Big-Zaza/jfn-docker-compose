@@ -26,7 +26,6 @@ mkdir -p redis/conf
 Create Redis configuration files: Use a text editor to create three files named redis-0.conf, redis-1.conf, and redis-2.conf inside the redis/conf directory:
 
 bash
-Copy code
 touch redis/conf/redis-0.conf redis/conf/redis-1.conf redis/conf/redis-2.conf
 Contents for redis-0.conf:
 
@@ -209,7 +208,6 @@ Stopping the Application
 To stop the application and remove the containers, run:
 
 bash
-Copy code
 docker-compose down
 This command stops all services and cleans up resources.
 
@@ -219,7 +217,6 @@ If you encounter any issues, consider the following:
 Permission Denied Errors: Ensure that the mvnw file is executable. If you face issues, run:
 
 bash
-Copy code
 chmod +x mvnw
 Docker Daemon Issues: Make sure Docker Desktop is running and check for error messages in the Docker logs.
 
