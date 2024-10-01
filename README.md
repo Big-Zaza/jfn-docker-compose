@@ -9,10 +9,10 @@ Before you begin, make sure you have the following installed:
 Cloning the Repository
 Start by cloning the repository to your local machine. Open your terminal and run:
 
-bash
-Copy code
+```bash
 git clone https://github.com/your-username/petclinic-docker.git
 cd petclinic-docker
+```
 This command downloads the project files to your local directory.
 
 Creating Redis and Sentinel Configuration Files
@@ -20,63 +20,68 @@ To set up Redis with Sentinel for high availability, we need to create configura
 
 Create a directory for Redis configurations:
 
-bash
-Copy code
+```bash
 mkdir -p redis/conf
-Create Redis configuration files: Use a text editor to create three files named redis-0.conf, redis-1.conf, and redis-2.conf inside the redis/conf directory:
+```
+Create Redis configuration files: Use a text editor to create three files named redis-0, redis-1, and redis-2 inside the redis/conf directory:
 
-bash
+```bash
 touch redis/conf/redis-0.conf redis/conf/redis-1.conf redis/conf/redis-2.conf
+```
 Contents for redis-0.conf:
 
-conf
-Copy code
+```bash
 protected-mode no
 port 6379
 masterauth a-very-complex-password-here
 requirepass a-very-complex-password-here
 Contents for redis-1.conf:
+```
 
-conf
-Copy code
+Contents for redis-1.conf:
+
+```bash
 protected-mode no
 port 6379
 slaveof redis-0 6379
 masterauth a-very-complex-password-here
 requirepass a-very-complex-password-here
 Contents for redis-2.conf:
+```
 
-conf
-Copy code
+```bash
 protected-mode no
 port 6379
 slaveof redis-0 6379
 masterauth a-very-complex-password-here
 requirepass a-very-complex-password-here
+```
+
 Create Sentinel configuration files: Similarly, create three files named sentinel-01.conf, sentinel-02.conf, and sentinel-03.conf inside the redis/conf directory:
 
-bash
-Copy code
+
+```bash
 touch redis/conf/sentinel-01.conf redis/conf/sentinel-02.conf redis/conf/sentinel-03.conf
+```
+
 Contents for each sentinel file:
 
-conf
-Copy code
+```bash
 port 5000
 sentinel monitor mymaster redis-0 6379 2
 sentinel down-after-milliseconds mymaster 5000
 sentinel failover-timeout mymaster 60000
 sentinel parallel-syncs mymaster 1
 sentinel auth-pass mymaster a-very-complex-password-here
+```
+
 Understanding Docker Compose
-Docker Compose is a tool for defining and running multi-container Docker applications. In our project, we have multiple services (e.g., the Pet Clinic application, MySQL database, and Redis cluster) that work together seamlessly.
+. In our project, we have multiple services (e.g., the Pet Clinic application, MySQL database, and Redis cluster) that work together seamlessly.
 
 Explaining the docker-compose.yml File
 Here’s the docker-compose.yml file used in this project:
 
-yaml
-Copy code
-version: '3.8'
+```bash
 
 services:
   petclinic:
@@ -106,40 +111,42 @@ services:
     image: redis:4.0.2
     command: ["redis-server", "/etc/redis/redis.conf"]
     volumes:
-      - ./redis/conf/redis-0.conf:/etc/redis/redis.conf
+      - ./redis/conf/redis-0:/etc/redis/redis.conf
 
   redis-1:
     image: redis:4.0.2
     command: ["redis-server", "/etc/redis/redis.conf"]
     volumes:
-      - ./redis/conf/redis-1.conf:/etc/redis/redis.conf
+      - ./redis/conf/redis-1:/etc/redis/redis.conf
 
   redis-2:
     image: redis:4.0.2
     command: ["redis-server", "/etc/redis/redis.conf"]
     volumes:
-      - ./redis/conf/redis-2.conf:/etc/redis/redis.conf
+      - ./redis/conf/redis-2:/etc/redis/redis.conf
 
   sentinel-01:
     image: redis:4.0.2
     command: ["redis-sentinel", "/etc/redis/sentinel.conf"]
     volumes:
-      - ./redis/conf/sentinel-01.conf:/etc/redis/sentinel.conf
+      - ./redis/conf/sentinel-01:/etc/redis/sentinel.conf
 
   sentinel-02:
     image: redis:4.0.2
     command: ["redis-sentinel", "/etc/redis/sentinel.conf"]
     volumes:
-      - ./redis/conf/sentinel-02.conf:/etc/redis/sentinel.conf
+      - ./redis/conf/sentinel-02:/etc/redis/sentinel.conf
 
   sentinel-03:
     image: redis:4.0.2
     command: ["redis-sentinel", "/etc/redis/sentinel.conf"]
     volumes:
-      - ./redis/conf/sentinel-03.conf:/etc/redis/sentinel.conf
+      - ./redis/conf/sentinel-03:/etc/redis/sentinel.conf
 
 volumes:
   mysql_config:
+```
+
 Explanation of Each Section
 version: Specifies the version of Docker Compose being used (3.8 in this case).
 
@@ -170,12 +177,14 @@ volumes: Defines named volumes for persistent storage, specifically for MySQL co
 Building and Running the Application
 To start the application, run the following command in the terminal:
 
-bash
-Copy code
+```bash
 docker-compose up -d
+```
+
 What Happens When You Run This Command
-Builds Images: If not already built, Docker creates images for all defined services.
-Starts Containers: Each service runs in its own container, allowing them to work together.
+- Builds Images: If not already built, Docker creates images for all defined services.
+- Starts Containers: Each service runs in its own container, allowing them to work together, but in this case we'll have to run our containers manually because at the end of the docker-compose we'll only have the images.
+  
 Output of the Command
 You will see logs indicating that each container is starting. This includes images like:
 
@@ -188,17 +197,21 @@ The Pet Clinic application will be accessible on port 8100 of your host machine,
 Accessing the Application
 Once the build is finished, you run the command 
 
-bash 
+```bash
 docker ps
-
+```
 And you'll see a list of docker images such as; petclinic-docker-petclinic, mysql, redis
 
 To be able to see the application in the Ui, we'll have to create a running instance of the image called a container and expose it in the container port 8080 and in the host port, any one of your choice
 
-bash
+```bash
 docker run -dp 8100:8080 --name petclinic-app petclinic-docker-petclinic
+```
 
-Pet Clinic UI: http://localhost:8100
+Pet Clinic UI: 
+```bash
+http://localhost:8100
+```
 This URL will display the Pet Clinic application interface.
 
 <img width="1434" alt="Screen Shot 2024-10-01 at 08 56 33" src="https://github.com/user-attachments/assets/12bed183-4c3e-46cf-9bb5-5c5cd139666b">
@@ -207,8 +220,9 @@ This URL will display the Pet Clinic application interface.
 Stopping the Application
 To stop the application and remove the containers, run:
 
-bash
+```bash
 docker-compose down
+```
 This command stops all services and cleans up resources.
 
 Troubleshooting
@@ -216,8 +230,9 @@ If you encounter any issues, consider the following:
 
 Permission Denied Errors: Ensure that the mvnw file is executable. If you face issues, run:
 
-bash
+```bash
 chmod +x mvnw
+```
 Docker Daemon Issues: Make sure Docker Desktop is running and check for error messages in the Docker logs.
 
 Network Issues: Ensure no other services are using the same ports as defined in the docker-compose.yml.
